@@ -2,6 +2,8 @@
 # filepath: pacman-wrapper.sh
 # A helpful wrapper for Arch Linux's pacman package manager
 
+# shellcheck disable=SC2317  # Many functions are called indirectly
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,6 +20,7 @@ declare -a WHITELISTED_NAMES_LIST=()
 declare -a GREYLISTED_KEYWORDS_LIST=()
 POLICY_LISTS_LOADED=0
 
+# shellcheck disable=SC2317  # Function is called indirectly
 load_policy_lists() {
   if [[ $POLICY_LISTS_LOADED -eq 1 ]]; then
     return
@@ -187,6 +190,7 @@ function display_operation() {
 }
 
 # Helper: return 0 if the given package name is blocked by policy
+# shellcheck disable=SC2317  # Function is called indirectly
 function is_blocked_package_name() {
   load_policy_lists
   local normalized="${1,,}"

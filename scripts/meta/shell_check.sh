@@ -256,7 +256,8 @@ run_linters() {
   log_info "Running shellcheck..."
   local sc_out="$TMPDIR/shellcheck.txt"
   if is_cmd shellcheck; then
-    if ! shellcheck -x -S style "${FILES[@]}" > "$sc_out" 2>&1; then
+    # Exclude SC1091 (not following sourced files) as it's expected in many scripts
+    if ! shellcheck -x -S style -e SC1091 "${FILES[@]}" > "$sc_out" 2>&1; then
       issues=$((issues + 1))
     fi
   else

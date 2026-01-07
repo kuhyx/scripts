@@ -135,6 +135,7 @@ handle_arg_help_or_unknown() {
       return 1 # Not a flag, let caller handle it
       ;;
   esac
+  # shellcheck disable=SC2317
   return 0
 }
 
