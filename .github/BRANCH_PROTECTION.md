@@ -7,9 +7,8 @@ This repository uses GitHub Actions to ensure code quality before merging to `ma
 ### Shell Script Linting
 
 The `Shell Script Linting` workflow automatically runs on:
-- Pull requests targeting `main` or `master` branches
+- Pull requests targeting `main` or `master` branches (including from forks)
 - Direct pushes to `main` or `master` branches
-- Pull requests from forks (via `pull_request_target`)
 
 This workflow checks:
 - Shell script syntax with `shellcheck`
