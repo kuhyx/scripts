@@ -17,6 +17,15 @@ on:
       - '**.zsh'
       - '.github/workflows/shell-check.yml'
       - 'scripts/meta/shell_check.sh'
+  # Also run on pull_request_target for forks to ensure all PRs are checked
+  pull_request_target:
+    branches: [ main, master ]
+    paths:
+      - '**.sh'
+      - '**.bash'
+      - '**.zsh'
+      - '.github/workflows/shell-check.yml'
+      - 'scripts/meta/shell_check.sh'
 
 jobs:
   shellcheck:
@@ -26,6 +35,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # For pull_request_target, checkout the PR head
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
       
       - name: Install shellcheck
         run: |
@@ -48,3 +60,11 @@ jobs:
       - name: Report status
         if: success()
         run: echo "✅ All shell scripts passed linting checks!"
+      
+      - name: Fail on linting errors
+        if: failure()
+        run: |
+          echo "❌ Shell script linting failed!"
+          echo "This check is required to merge PRs into main/master."
+          echo "Please run 'bash scripts/meta/shell_check.sh' locally and fix any issues."
+          exit 1
