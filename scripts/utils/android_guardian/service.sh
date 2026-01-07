@@ -79,7 +79,11 @@ check_blocked_apps() {
     # Check if package is installed
     if pm list packages 2> /dev/null | grep -q "package:$package"; then
       log "Blocked app detected: $package - Uninstalling..."
-      pm uninstall "$package" 2> /dev/null && log "Uninstalled: $package" || log "Failed to uninstall: $package"
+      if pm uninstall "$package" 2> /dev/null; then
+        log "Uninstalled: $package"
+      else
+        log "Failed to uninstall: $package"
+      fi
     fi
   done < "$BLOCKED_APPS_FILE"
 }

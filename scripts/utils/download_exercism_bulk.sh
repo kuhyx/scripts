@@ -64,7 +64,9 @@ for track in "${!TRACKS[@]}"; do
 
   # Show exercise count
   if [[ -d "$track/exercises/practice" ]]; then
-    count=$(ls "$track/exercises/practice" | wc -l)
+    count=$(find "$track/exercises/practice" -maxdepth 1 -type d | wc -l)
+    # Subtract 1 for the parent directory itself
+    count=$((count - 1))
     echo "    → $count practice exercises available"
   fi
   echo ""
@@ -100,7 +102,9 @@ echo ""
 echo "Track summary:"
 for track in "${!TRACKS[@]}"; do
   if [[ -d "$track/exercises/practice" ]]; then
-    count=$(ls "$track/exercises/practice" 2> /dev/null | wc -l)
+    count=$(find "$track/exercises/practice" -maxdepth 1 -type d 2> /dev/null | wc -l)
+    # Subtract 1 for the parent directory itself
+    count=$((count - 1))
     printf "  %-15s %3d exercises\n" "$track" "$count"
   fi
 done | sort

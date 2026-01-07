@@ -110,7 +110,7 @@ install_exercism_cli() {
   # Check PATH
   if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     warn "Add ~/.local/bin to your PATH:"
-    echo '  export PATH="$HOME/.local/bin:$PATH"'
+    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
   fi
 }
 
@@ -151,7 +151,11 @@ install_test_runners() {
       success "Python: pytest already installed"
     else
       info "Installing pytest for Python exercises..."
-      pip3 install --user pytest 2> /dev/null && success "Python: pytest installed" || warn "Python: install pytest manually"
+      if pip3 install --user pytest 2> /dev/null; then
+        success "Python: pytest installed"
+      else
+        warn "Python: install pytest manually"
+      fi
     fi
   fi
 
@@ -256,8 +260,8 @@ show_usage() {
   echo ""
   echo -e "${CYAN}Batch download (requires API token):${NC}"
   echo "  # Download first 20 Python exercises:"
-  echo '  for ex in $(exercism download --track=python 2>&1 | head -20); do'
-  echo '    exercism download --track=python --exercise=$ex'
+  echo "  for ex in \$(exercism download --track=python 2>&1 | head -20); do"
+  echo "    exercism download --track=python --exercise=\$ex"
   echo "  done"
   echo ""
   echo "Exercises are in: $EXERCISM_DIR"

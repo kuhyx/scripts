@@ -887,7 +887,7 @@ main() {
       if [ "$lang" = "all" ]; then
         lookup_all "$term"
       else
-        result=$(lookup_$lang "$term" 2> /dev/null)
+        result=$(lookup_"$lang" "$term" 2> /dev/null)
         if [ -n "$result" ]; then
           local file desc
           file=$(echo "$result" | cut -d'|' -f1)

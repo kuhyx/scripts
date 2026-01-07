@@ -96,7 +96,6 @@ lookup_offline() {
 # Python documentation
 python_doc_url() {
   local term="$1"
-  local type="$2" # keyword, builtin, module
 
   case "$term" in
     # Keywords
@@ -333,14 +332,14 @@ shell_doc_url() {
 
   case "$term" in
     # Built-in commands
-    if | then | else | elif | fi | for | while | until | do | done | case | esac | in | function | select | time | coproc)
+    if | then | else | elif | fi | for | while | until | do | done | case | 'esac' | in | function | select | time | coproc)
       echo "https://www.gnu.org/software/bash/manual/bash.html#Conditional-Constructs"
       ;;
     echo | printf | read | declare | local | export | unset | set | shopt | alias | source | eval | exec | exit | return | break | continue | shift | trap | wait | kill | jobs | bg | fg | disown | suspend | logout | cd | pwd | pushd | popd | dirs | type | which | command | builtin | enable | help | hash | bind | complete | compgen | compopt)
       echo "https://www.gnu.org/software/bash/manual/bash.html#Shell-Builtin-Commands"
       ;;
     # Common external commands
-    grep | sed | awk | find | xargs | sort | uniq | cut | tr | head | tail | wc | cat | tee | diff | patch | tar | gzip | zip | curl | wget | ssh | scp | rsync | git | make | chmod | chown | chgrp | ln | cp | mv | rm | mkdir | rmdir | touch | ls | stat | file | df | du | free | top | ps | kill | pkill | pgrep | nohup | screen | tmux)
+    grep | sed | awk | find | xargs | sort | uniq | cut | tr | head | tail | wc | cat | tee | diff | patch | tar | gzip | zip | curl | wget | ssh | scp | rsync | git | make | chmod | chown | chgrp | ln | cp | mv | rm | mkdir | rmdir | touch | ls | stat | file | df | du | free | top | ps | pkill | pgrep | nohup | screen | tmux)
       echo "https://man7.org/linux/man-pages/man1/$term.1.html"
       ;;
     *)
@@ -528,7 +527,7 @@ if [ -d "$PER_LANG_DIR" ]; then
     echo "| Keyword | Count | Documentation |" >> "$DOCS_FILE"
     echo "|---------|-------|---------------|" >> "$DOCS_FILE"
 
-    head -$TOP_N "$keyword_file" | while read -r count term; do
+    head -"$TOP_N" "$keyword_file" | while read -r count term; do
       [ -z "$term" ] && continue
       [[ $term =~ ^[#] ]] && continue # Skip comment lines
       url=$(get_doc_url "$term" "$doc_lang")
@@ -566,7 +565,7 @@ if [ -d "$PER_LANG_DIR" ]; then
     echo "| Function | Count | Documentation |" >> "$DOCS_FILE"
     echo "|----------|-------|---------------|" >> "$DOCS_FILE"
 
-    head -$TOP_N "$func_file" | while read -r count term; do
+    head -"$TOP_N" "$func_file" | while read -r count term; do
       [ -z "$term" ] && continue
       [[ $term =~ ^(if|for|while|switch|catch|elif)$ ]] && continue
       url=$(get_doc_url "$term" "$doc_lang")
@@ -613,7 +612,7 @@ if [ -d "$PER_LANG_DIR" ]; then
         module=$(echo "$import" | sed -E 's/.*[<"]([^">]+)[">].*/\1/' | sed 's|.*/||' | sed 's/\..*$//')
         url=$(get_doc_url "$module" "$doc_lang")
       fi
-      import_escaped=$(echo "$import" | sed 's/|/\\|/g')
+      import_escaped="${import//|/\\|}"
       echo "| \`$import_escaped\` | $count | [docs]($url) |" >> "$DOCS_FILE"
     done
     echo "" >> "$DOCS_FILE"
@@ -629,7 +628,7 @@ else
     echo "| Keyword | Count | Documentation |" >> "$DOCS_FILE"
     echo "|---------|-------|---------------|" >> "$DOCS_FILE"
 
-    head -$TOP_N "$RESULTS_DIR/grep_keywords.txt" | while read -r count term; do
+    head -"$TOP_N" "$RESULTS_DIR/grep_keywords.txt" | while read -r count term; do
       [ -z "$term" ] && continue
       url=$(get_doc_url "$term" "$PRIMARY_LANG")
       echo "| \`$term\` | $count | [docs]($url) |" >> "$DOCS_FILE"
@@ -643,7 +642,7 @@ else
     echo "| Function | Count | Documentation |" >> "$DOCS_FILE"
     echo "|----------|-------|---------------|" >> "$DOCS_FILE"
 
-    head -$TOP_N "$RESULTS_DIR/grep_function_calls.txt" | while read -r count term; do
+    head -"$TOP_N" "$RESULTS_DIR/grep_function_calls.txt" | while read -r count term; do
       [ -z "$term" ] && continue
       [[ $term =~ ^(if|for|while|switch|catch)$ ]] && continue
       url=$(get_doc_url "$term" "$PRIMARY_LANG")
@@ -662,7 +661,7 @@ else
       [ -z "$import" ] && continue
       module=$(echo "$import" | sed -E 's/.*[<"]([^">]+)[">].*/\1/' | sed 's|.*/||' | sed 's/\..*$//')
       url=$(get_doc_url "$module" "$PRIMARY_LANG")
-      import_escaped=$(echo "$import" | sed 's/|/\\|/g')
+      import_escaped="${import//|/\\|}"
       echo "| \`$import_escaped\` | $count | [docs]($url) |" >> "$DOCS_FILE"
     done
     echo "" >> "$DOCS_FILE"
@@ -694,7 +693,7 @@ EOF
 # Generate cards for top keywords
 if [ -f "$RESULTS_DIR/grep_keywords.txt" ]; then
   echo "# Keywords" >> "$ANKI_FILE"
-  head -$TOP_N "$RESULTS_DIR/grep_keywords.txt" | while read -r count term; do
+  head -"$TOP_N" "$RESULTS_DIR/grep_keywords.txt" | while read -r count term; do
     [ -z "$term" ] && continue
     url=$(get_doc_url "$term" "$PRIMARY_LANG")
 
@@ -732,7 +731,7 @@ fi
 if [ -f "$RESULTS_DIR/grep_function_calls.txt" ]; then
   echo "" >> "$ANKI_FILE"
   echo "# Functions" >> "$ANKI_FILE"
-  head -$TOP_N "$RESULTS_DIR/grep_function_calls.txt" | while read -r count term; do
+  head -"$TOP_N" "$RESULTS_DIR/grep_function_calls.txt" | while read -r count term; do
     [ -z "$term" ] && continue
     [[ $term =~ ^(if|for|while|switch|catch)$ ]] && continue
     url=$(get_doc_url "$term" "$PRIMARY_LANG")
@@ -780,11 +779,14 @@ generate_keywords_with_docs() {
   local keywords_file="$RESULTS_DIR/grep_keywords.txt"
   [ ! -f "$keywords_file" ] && echo "No keywords found" && return
 
-  head -$TOP_N "$keywords_file" | grep -v '^#' | while read -r line; do
-    local count=$(echo "$line" | awk '{print $1}')
-    local keyword=$(echo "$line" | awk '{print $2}')
+  head -"$TOP_N" "$keywords_file" | grep -v '^#' | while read -r line; do
+    local count
+    local keyword
+    local doc_link
+    count=$(echo "$line" | awk '{print $1}')
+    keyword=$(echo "$line" | awk '{print $2}')
     [ -z "$keyword" ] && continue
-    local doc_link=$(get_llm_doc_link "$keyword" "$PRIMARY_LANG" "false")
+    doc_link=$(get_llm_doc_link "$keyword" "$PRIMARY_LANG" "false")
     echo "$count $keyword → $doc_link"
   done
 }
@@ -794,16 +796,19 @@ generate_functions_with_docs() {
   local functions_file="$RESULTS_DIR/grep_function_calls.txt"
   [ ! -f "$functions_file" ] && echo "No functions found" && return
 
-  head -$TOP_N "$functions_file" | grep -v '^#' | while read -r line; do
-    local count=$(echo "$line" | awk '{print $1}')
-    local func=$(echo "$line" | awk '{print $2}')
+  head -"$TOP_N" "$functions_file" | grep -v '^#' | while read -r line; do
+    local count
+    local func
+    local doc_link
+    count=$(echo "$line" | awk '{print $1}')
+    func=$(echo "$line" | awk '{print $2}')
 
     # Skip single-letter functions (minified code) or empty
     if [ -z "$func" ] || [ ${#func} -le 1 ]; then
       continue
     fi
 
-    local doc_link=$(get_llm_doc_link "$func" "$PRIMARY_LANG" "false")
+    doc_link=$(get_llm_doc_link "$func" "$PRIMARY_LANG" "false")
     echo "$count $func() → $doc_link"
   done
 }
@@ -814,15 +819,18 @@ generate_imports_with_docs() {
   [ ! -f "$imports_file" ] && echo "No imports found" && return
 
   head -20 "$imports_file" | grep -v '^#' | while read -r line; do
-    local count=$(echo "$line" | awk '{print $1}')
-    local import_stmt=$(echo "$line" | cut -d' ' -f2-)
+    local count
+    local import_stmt
+    local doc_link
+    count=$(echo "$line" | awk '{print $1}')
+    import_stmt=$(echo "$line" | cut -d' ' -f2-)
     [ -z "$import_stmt" ] && continue
 
     # Check if internal import
     if [[ $import_stmt =~ @/ ]] || [[ $import_stmt =~ \'\./ ]] || [[ $import_stmt =~ from\ app\. ]] || [[ $import_stmt =~ from\ src\. ]]; then
       echo "$count $import_stmt → [INTERNAL - SKIP]"
     else
-      local doc_link=$(get_llm_doc_link "$import_stmt" "$PRIMARY_LANG" "true")
+      doc_link=$(get_llm_doc_link "$import_stmt" "$PRIMARY_LANG" "true")
       echo "$count $import_stmt → $doc_link"
     fi
   done

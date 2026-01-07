@@ -521,12 +521,12 @@ echo "  plagcheck thesis_v1.pdf thesis_v2.pdf --detailed"
 echo "  plagcheck --dir ./student_papers/ --threshold 0.4"
 echo ""
 echo "Note: Ensure ~/.local/bin is in your PATH:"
-echo '  export PATH="$HOME/.local/bin:$PATH"'
+echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
 echo ""
 echo "=============================================="
 
 # Add to PATH reminder
 if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   warn "Add ~/.local/bin to your PATH by adding this to ~/.bashrc or ~/.zshrc:"
-  echo '  export PATH="$HOME/.local/bin:$PATH"'
+  echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi

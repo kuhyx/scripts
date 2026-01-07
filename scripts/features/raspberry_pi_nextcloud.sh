@@ -545,6 +545,7 @@ EOF
 # Fix Nextcloud Issues
 # =============================================================================
 
+# shellcheck disable=SC2120  # Optional arguments are intentional
 phase_fix_issues() {
   check_root
 

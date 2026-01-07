@@ -30,7 +30,6 @@ STUDY_MATERIALS_BASE="$HOME/.local/share/study-materials"
 
 # Work directories
 WORK_DIR="/tmp/repo_study_$$"
-OUTPUT_DIR=""
 
 # Colors
 RED='\033[0;31m'
