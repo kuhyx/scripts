@@ -1,6 +1,8 @@
-# Bachelor Thesis Work Tracker
+# Bachelor/Master's Thesis Work Tracker
 
-A comprehensive system to help you stay focused on your bachelor thesis by blocking distractions until you've put in your work hours.
+A comprehensive system to help you stay focused on your thesis by blocking distractions until you've put in your work hours.
+
+> **Note**: This tracker was originally requested for a bachelor thesis, but works equally well for master's thesis work. The default repository name `praca_magisterska` is Polish for "master's thesis" - you can customize this during installation.
 
 ## Overview
 
