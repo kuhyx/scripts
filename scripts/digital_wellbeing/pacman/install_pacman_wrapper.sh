@@ -89,15 +89,25 @@ chmod 755 "$INTEGRITY_DIR"
 
 # Generate checksums of policy files for integrity verification
 echo -e "${BLUE}Generating integrity checksums for policy files...${NC}"
+
+# Ensure all critical policy files exist before checksumming
+missing_files=()
+[[ ! -f "$BLOCKED_DEST" ]] && missing_files+=("$BLOCKED_DEST")
+[[ ! -f "$GREYLIST_DEST" ]] && missing_files+=("$GREYLIST_DEST")
+
+if [[ ${#missing_files[@]} -gt 0 ]]; then
+  echo -e "${RED}Error: Critical policy files are missing:${NC}"
+  printf '%s\n' "${missing_files[@]}" >&2
+  echo -e "${RED}Installation incomplete. Cannot create integrity file.${NC}"
+  exit 1
+fi
+
 {
-  if [[ -f "$BLOCKED_DEST" ]]; then
-    sha256sum "$BLOCKED_DEST" || { echo -e "${RED}Failed to checksum blocked list${NC}"; exit 1; }
-  fi
-  if [[ -f "$GREYLIST_DEST" ]]; then
-    sha256sum "$GREYLIST_DEST" || { echo -e "${RED}Failed to checksum greylist${NC}"; exit 1; }
-  fi
+  sha256sum "$BLOCKED_DEST" || { echo -e "${RED}Failed to checksum blocked list${NC}" >&2; exit 1; }
+  sha256sum "$GREYLIST_DEST" || { echo -e "${RED}Failed to checksum greylist${NC}" >&2; exit 1; }
+  # Whitelist is optional
   if [[ -f "$WHITELIST_DEST" ]]; then
-    sha256sum "$WHITELIST_DEST" || { echo -e "${RED}Failed to checksum whitelist${NC}"; exit 1; }
+    sha256sum "$WHITELIST_DEST" || { echo -e "${RED}Failed to checksum whitelist${NC}" >&2; exit 1; }
   fi
 } > "$INTEGRITY_FILE"
 

@@ -13,9 +13,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Auto-sudo functionality
+# Auto-sudo functionality with confirmation
 if [ "$EUID" -ne 0 ]; then
-  echo -e "${YELLOW}Executing with sudo...${NC}"
+  echo -e "${YELLOW}This script requires root privileges to configure VirtualBox VMs.${NC}"
+  echo -e "${CYAN}Executing with sudo...${NC}"
   exec sudo "$0" "$@"
 fi
 

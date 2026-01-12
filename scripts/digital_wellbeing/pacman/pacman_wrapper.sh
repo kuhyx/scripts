@@ -791,6 +791,8 @@ enforce_vbox_hosts_if_needed() {
   
   # VirtualBox is installed but enforcement not applied - this is critical
   echo -e "${YELLOW}VirtualBox detected. Applying /etc/hosts enforcement to VMs...${NC}" >&2
+  # Note: The wrapper may be running as non-root user (via sudo pacman), but enforcement
+  # script needs root. We check EUID to avoid double sudo if already running as root.
   if [[ $EUID -ne 0 ]]; then
     if ! sudo bash "$vbox_enforce_script" enforce; then
       echo -e "${RED}CRITICAL: Failed to enforce hosts on VirtualBox VMs!${NC}" >&2
