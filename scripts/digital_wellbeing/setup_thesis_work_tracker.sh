@@ -89,7 +89,7 @@ require_root() {
 }
 
 usage() {
-    sed -n '2,/^set -euo pipefail/p' "$0" | sed 's/^# \{0,1\}//'
+    head -n 31 "$0" | tail -n +2 | sed 's/^# \{0,1\}//'
 }
 
 check_dependencies() {
@@ -128,6 +128,10 @@ while [[ $# -gt 0 ]]; do
                 err "--work-quota requires a value"
                 exit 2
             }
+            if ! [[ $WORK_QUOTA_MINUTES =~ ^[0-9]+$ ]] || [[ $WORK_QUOTA_MINUTES -le 0 ]]; then
+                err "--work-quota must be a positive integer (got: $WORK_QUOTA_MINUTES)"
+                exit 2
+            fi
             shift 2
             ;;
         --decay-rate)
@@ -136,6 +140,10 @@ while [[ $# -gt 0 ]]; do
                 err "--decay-rate requires a value"
                 exit 2
             }
+            if ! [[ $DECAY_RATE_MINUTES =~ ^[0-9]+$ ]] || [[ $DECAY_RATE_MINUTES -lt 0 ]]; then
+                err "--decay-rate must be a non-negative integer (got: $DECAY_RATE_MINUTES)"
+                exit 2
+            fi
             shift 2
             ;;
         --vscode-repo)

@@ -121,7 +121,9 @@ LAST_WORK_SESSION_START=0
 CURRENT_SESSION_SECONDS=0
 EOF
         sudo chmod 600 "$STATE_FILE"
-        sudo chattr +i "$STATE_FILE" 2>/dev/null || true
+        if ! sudo chattr +i "$STATE_FILE" 2>/dev/null; then
+            log_warn "Failed to set immutable flag on state file - protections may be weaker"
+        fi
     fi
 }
 
@@ -135,9 +137,19 @@ load_state() {
     # Temporarily remove immutable flag to read
     sudo chattr -i "$STATE_FILE" 2>/dev/null || true
     
-    # Source the state file
-    # shellcheck source=/dev/null
-    source "$STATE_FILE"
+    # Parse state file safely without using source
+    # Only extract the numeric values we need
+    TOTAL_WORK_SECONDS=$(grep "^TOTAL_WORK_SECONDS=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+    STEAM_ACCESS_GRANTED=$(grep "^STEAM_ACCESS_GRANTED=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+    CURRENT_SESSION_SECONDS=$(grep "^CURRENT_SESSION_SECONDS=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+    LAST_WORK_SESSION_START=$(grep "^LAST_WORK_SESSION_START=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+    LAST_UPDATE_TIMESTAMP=$(grep "^LAST_UPDATE_TIMESTAMP=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+    
+    # Validate that values are numeric
+    if ! [[ $TOTAL_WORK_SECONDS =~ ^[0-9]+$ ]]; then TOTAL_WORK_SECONDS=0; fi
+    if ! [[ $STEAM_ACCESS_GRANTED =~ ^[01]$ ]]; then STEAM_ACCESS_GRANTED=0; fi
+    if ! [[ $CURRENT_SESSION_SECONDS =~ ^[0-9]+$ ]]; then CURRENT_SESSION_SECONDS=0; fi
+    if ! [[ $LAST_WORK_SESSION_START =~ ^[0-9]+$ ]]; then LAST_WORK_SESSION_START=0; fi
     
     # Re-apply immutable flag
     sudo chattr +i "$STATE_FILE" 2>/dev/null || true
@@ -168,7 +180,9 @@ EOF
     
     sudo chmod 600 "$STATE_FILE"
     # Re-apply immutable flag
-    sudo chattr +i "$STATE_FILE" 2>/dev/null || true
+    if ! sudo chattr +i "$STATE_FILE" 2>/dev/null; then
+        log_warn "Failed to set immutable flag on state file after save"
+    fi
 }
 
 # Check if a process is running
@@ -211,19 +225,9 @@ is_vscode_on_thesis_repo() {
     
     # VS Code window titles typically contain the folder/workspace name
     # Look for the repo name in the window title
+    # Window title format is usually: "filename - reponame - Visual Studio Code"
     if [[ $window_title == *"$VSCODE_REQUIRED_REPO"* ]]; then
         return 0
-    fi
-    
-    # Also check if VS Code has the repo open by checking recent workspaces
-    # VS Code stores workspace info in ~/.config/Code/User/workspaceStorage
-    if [[ -d "$HOME/.config/Code/User/workspaceStorage" ]]; then
-        if find "$HOME/.config/Code/User/workspaceStorage" -type f -name "workspace.json" -exec grep -l "$VSCODE_REQUIRED_REPO" {} \; 2>/dev/null | grep -q .; then
-            # Additional check: is this window actually VS Code?
-            if [[ $window_title == *"Visual Studio Code"* ]]; then
-                return 0
-            fi
-        fi
     fi
     
     return 1
@@ -246,7 +250,10 @@ is_thesis_work_active() {
     
     # Check each thesis application
     for proc_pattern in "${!THESIS_APPS[@]}"; do
-        if [[ $process_name == *"$proc_pattern"* ]] || [[ $window_title == *"${THESIS_APPS[$proc_pattern]}"* ]]; then
+        local app_name="${THESIS_APPS[$proc_pattern]}"
+        
+        # Check window title for application name (more reliable than process name)
+        if [[ $window_title == *"$app_name"* ]]; then
             # Special handling for VS Code - must be on thesis repo
             if [[ $proc_pattern == "Code" ]] || [[ $proc_pattern == "code" ]]; then
                 if is_vscode_on_thesis_repo "$window_title"; then
@@ -258,7 +265,24 @@ is_thesis_work_active() {
                 fi
             fi
             
-            log_debug "Thesis work detected: ${THESIS_APPS[$proc_pattern]}"
+            log_debug "Thesis work detected: $app_name"
+            return 0
+        fi
+        
+        # Also check process name with exact match
+        if [[ $process_name == "$proc_pattern" ]]; then
+            # Special handling for VS Code - must be on thesis repo
+            if [[ $proc_pattern == "Code" ]] || [[ $proc_pattern == "code" ]]; then
+                if is_vscode_on_thesis_repo "$window_title"; then
+                    log_debug "Thesis work detected: VS Code on $VSCODE_REQUIRED_REPO"
+                    return 0
+                else
+                    log_debug "VS Code detected but not on thesis repo"
+                    continue
+                fi
+            fi
+            
+            log_debug "Thesis work detected: $app_name"
             return 0
         fi
     done
@@ -298,8 +322,13 @@ unblock_distractions() {
     # Remove immutable flag temporarily
     sudo chattr -i /etc/hosts 2>/dev/null || true
     
-    # Remove blocking entries
-    local temp_hosts="/tmp/hosts.tmp.$$"
+    # Remove blocking entries using mktemp for security
+    local temp_hosts
+    temp_hosts=$(mktemp) || {
+        log_error "Failed to create temporary file"
+        return 1
+    }
+    
     sudo cp /etc/hosts "$temp_hosts"
     
     for domain in "${STEAM_DOMAINS[@]}" "${DISTRACTION_DOMAINS[@]}"; do

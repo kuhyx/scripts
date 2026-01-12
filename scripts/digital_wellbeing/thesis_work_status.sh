@@ -29,12 +29,18 @@ fi
 # Temporarily remove immutable to read
 sudo chattr -i "$STATE_FILE" 2>/dev/null || true
 
-# Source the state file
-# shellcheck source=/dev/null
-source "$STATE_FILE" 2>/dev/null || {
-    echo -e "${RED}Error:${NC} Could not read state file"
-    exit 1
-}
+# Parse state file safely without using source
+# Only extract the numeric values we need
+TOTAL_WORK_SECONDS=$(grep "^TOTAL_WORK_SECONDS=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+STEAM_ACCESS_GRANTED=$(grep "^STEAM_ACCESS_GRANTED=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+CURRENT_SESSION_SECONDS=$(grep "^CURRENT_SESSION_SECONDS=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+LAST_WORK_SESSION_START=$(grep "^LAST_WORK_SESSION_START=" "$STATE_FILE" 2>/dev/null | cut -d= -f2 || echo "0")
+
+# Validate that values are numeric
+if ! [[ $TOTAL_WORK_SECONDS =~ ^[0-9]+$ ]]; then TOTAL_WORK_SECONDS=0; fi
+if ! [[ $STEAM_ACCESS_GRANTED =~ ^[01]$ ]]; then STEAM_ACCESS_GRANTED=0; fi
+if ! [[ $CURRENT_SESSION_SECONDS =~ ^[0-9]+$ ]]; then CURRENT_SESSION_SECONDS=0; fi
+if ! [[ $LAST_WORK_SESSION_START =~ ^[0-9]+$ ]]; then LAST_WORK_SESSION_START=0; fi
 
 # Re-apply immutable
 sudo chattr +i "$STATE_FILE" 2>/dev/null || true
