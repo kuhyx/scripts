@@ -747,12 +747,21 @@ remove_installed_greylisted_packages "$@"
 # If VirtualBox was involved in this operation, enforce hosts file sharing
 enforce_vbox_hosts_if_needed() {
   # Only check after install operations
-  if [[ ${1:-} != "-S"* && ${1:-} != "-U"* ]]; then
+  if [[ -z ${1:-} ]]; then
     return 0
   fi
   
-  # Check if VirtualBox is installed
-  if ! "$PACMAN_BIN" -Qq virtualbox > /dev/null 2>&1; then
+  if [[ $1 != "-S"* && $1 != "-U"* ]]; then
+    return 0
+  fi
+  
+  # Check if ANY VirtualBox package is installed (use broader search)
+  local vbox_installed=0
+  if "$PACMAN_BIN" -Qq 2>/dev/null | grep -Eq '^(virtualbox|vbox)'; then
+    vbox_installed=1
+  fi
+  
+  if [[ $vbox_installed -eq 0 ]]; then
     return 0
   fi
   
@@ -771,6 +780,7 @@ enforce_vbox_hosts_if_needed() {
   fi
   
   if [[ -z $vbox_enforce_script ]]; then
+    echo -e "${YELLOW}VirtualBox detected but enforcement script not found. Hosts file may not be enforced in VMs.${NC}" >&2
     return 0
   fi
   
@@ -779,12 +789,20 @@ enforce_vbox_hosts_if_needed() {
     return 0
   fi
   
-  # VirtualBox is installed but enforcement not applied
+  # VirtualBox is installed but enforcement not applied - this is critical
   echo -e "${YELLOW}VirtualBox detected. Applying /etc/hosts enforcement to VMs...${NC}" >&2
   if [[ $EUID -ne 0 ]]; then
-    sudo bash "$vbox_enforce_script" enforce || echo -e "${RED}Failed to enforce hosts on VirtualBox VMs${NC}" >&2
+    if ! sudo bash "$vbox_enforce_script" enforce; then
+      echo -e "${RED}CRITICAL: Failed to enforce hosts on VirtualBox VMs!${NC}" >&2
+      echo -e "${RED}VMs may bypass /etc/hosts restrictions. Please run manually:${NC}" >&2
+      echo -e "${RED}  sudo $vbox_enforce_script enforce${NC}" >&2
+    fi
   else
-    bash "$vbox_enforce_script" enforce || echo -e "${RED}Failed to enforce hosts on VirtualBox VMs${NC}" >&2
+    if ! bash "$vbox_enforce_script" enforce; then
+      echo -e "${RED}CRITICAL: Failed to enforce hosts on VirtualBox VMs!${NC}" >&2
+      echo -e "${RED}VMs may bypass /etc/hosts restrictions. Please run manually:${NC}" >&2
+      echo -e "${RED}  $vbox_enforce_script enforce${NC}" >&2
+    fi
   fi
 }
 

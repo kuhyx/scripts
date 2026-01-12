@@ -92,14 +92,16 @@ BACKUP_HOSTS_FILE="/etc/hosts.pre-vbox-sync"
 
 # Function to check if running in VirtualBox
 is_virtualbox() {
-  if command -v dmidecode > /dev/null 2>&1; then
-    if sudo dmidecode -s system-product-name 2>/dev/null | grep -qi "VirtualBox"; then
+  # First try systemd-detect-virt (no root required)
+  if command -v systemd-detect-virt > /dev/null 2>&1; then
+    if systemd-detect-virt 2>/dev/null | grep -qi "oracle"; then
       return 0
     fi
   fi
   
-  if command -v systemd-detect-virt > /dev/null 2>&1; then
-    if systemd-detect-virt | grep -qi "oracle"; then
+  # Then try dmidecode (requires root, but script should already be running as root)
+  if command -v dmidecode > /dev/null 2>&1; then
+    if dmidecode -s system-product-name 2>/dev/null | grep -qi "VirtualBox"; then
       return 0
     fi
   fi

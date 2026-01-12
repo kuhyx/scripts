@@ -90,10 +90,22 @@ chmod 755 "$INTEGRITY_DIR"
 # Generate checksums of policy files for integrity verification
 echo -e "${BLUE}Generating integrity checksums for policy files...${NC}"
 {
-  sha256sum "$BLOCKED_DEST" 2>/dev/null || true
-  sha256sum "$GREYLIST_DEST" 2>/dev/null || true
-  sha256sum "$WHITELIST_DEST" 2>/dev/null || true
+  if [[ -f "$BLOCKED_DEST" ]]; then
+    sha256sum "$BLOCKED_DEST" || { echo -e "${RED}Failed to checksum blocked list${NC}"; exit 1; }
+  fi
+  if [[ -f "$GREYLIST_DEST" ]]; then
+    sha256sum "$GREYLIST_DEST" || { echo -e "${RED}Failed to checksum greylist${NC}"; exit 1; }
+  fi
+  if [[ -f "$WHITELIST_DEST" ]]; then
+    sha256sum "$WHITELIST_DEST" || { echo -e "${RED}Failed to checksum whitelist${NC}"; exit 1; }
+  fi
 } > "$INTEGRITY_FILE"
+
+# Verify integrity file was created and has content
+if [[ ! -s "$INTEGRITY_FILE" ]]; then
+  echo -e "${RED}Error: Integrity file was not created or is empty${NC}"
+  exit 1
+fi
 
 # Make integrity file immutable
 chmod 400 "$INTEGRITY_FILE"
