@@ -45,8 +45,10 @@ UNINSTALL=0
 ######################################################################
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 TRACKER_SCRIPT="$SCRIPT_DIR/thesis_work_tracker.sh"
+STATUS_SCRIPT="$SCRIPT_DIR/thesis_work_status.sh"
 SERVICE_FILE="$SCRIPT_DIR/systemd/thesis-work-tracker@.service"
 INSTALL_BIN="/usr/local/bin/thesis_work_tracker.sh"
+INSTALL_STATUS="/usr/local/bin/thesis_work_status"
 INSTALL_SERVICE="/etc/systemd/system/thesis-work-tracker@.service"
 STATE_DIR="/var/lib/thesis-work-tracker"
 LOG_DIR="/var/log/thesis-work-tracker"
@@ -195,6 +197,11 @@ uninstall_tracker() {
         run rm -f "$INSTALL_BIN"
     fi
     
+    # Remove status script
+    if [[ -f $INSTALL_STATUS ]]; then
+        run rm -f "$INSTALL_STATUS"
+    fi
+    
     # Remove state directory (with immutable flags removed)
     if [[ -d $STATE_DIR ]]; then
         run chattr -i -R "$STATE_DIR" 2>/dev/null || true
@@ -215,6 +222,11 @@ install_tracker() {
     # Verify source files exist
     if [[ ! -f $TRACKER_SCRIPT ]]; then
         err "Tracker script not found: $TRACKER_SCRIPT"
+        exit 1
+    fi
+    
+    if [[ ! -f $STATUS_SCRIPT ]]; then
+        err "Status script not found: $STATUS_SCRIPT"
         exit 1
     fi
     
@@ -243,6 +255,15 @@ install_tracker() {
     run sed -i "s/^VSCODE_REQUIRED_REPO=.*/VSCODE_REQUIRED_REPO=\"$VSCODE_REPO\"/" "$INSTALL_BIN"
     
     run chmod 755 "$INSTALL_BIN"
+    
+    # Install status script
+    msg "Installing status script to $INSTALL_STATUS..."
+    run cp "$STATUS_SCRIPT" "$INSTALL_STATUS"
+    
+    # Update quota in status script to match
+    run sed -i "s/^WORK_QUOTA_REQUIRED=.*/WORK_QUOTA_REQUIRED=$work_quota_seconds  # $WORK_QUOTA_MINUTES minutes/" "$INSTALL_STATUS"
+    
+    run chmod 755 "$INSTALL_STATUS"
     
     # Install systemd service
     msg "Installing systemd service..."
@@ -307,6 +328,7 @@ install_tracker() {
     echo "  5. When work time drops below quota, Steam is blocked again"
     echo ""
     echo "Useful Commands:"
+    echo "  • Check progress: thesis_work_status"
     echo "  • Check status:   systemctl status thesis-work-tracker@$user.service"
     echo "  • View logs:      tail -f $LOG_DIR/tracker.log"
     echo "  • View state:     sudo cat $STATE_DIR/work-time.state"
